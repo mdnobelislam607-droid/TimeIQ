@@ -25,9 +25,7 @@ class AppPickerActivity : AppCompatActivity() {
         root.setBackgroundColor(Ui.bg)
         root.setPadding(Ui.dp(this, 20), Ui.dp(this, 40), Ui.dp(this, 20), Ui.dp(this, 24))
 
-        val title = Ui.text(this, "Select apps to control", 22f, Ui.accent, true)
-        title.setPadding(0, 0, 0, Ui.dp(this, 16))
-        root.addView(title)
+                root.addView(Ui.backBar(this, "Select apps to control"))
 
         val launch = Intent(Intent.ACTION_MAIN)
         launch.addCategory(Intent.CATEGORY_LAUNCHER)
