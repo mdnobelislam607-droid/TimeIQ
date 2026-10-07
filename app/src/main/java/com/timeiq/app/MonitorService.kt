@@ -14,6 +14,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import java.util.Calendar
+import java.util.TimeZone
 
 class MonitorService : Service() {
 
@@ -64,6 +65,7 @@ class MonitorService : Service() {
     }
 
     private fun check() {
+        Usage.applyGoal(this)
         val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
         val limitMin = prefs.getInt("limit_min", 0)
         if (limitMin <= 0) return
@@ -108,14 +110,10 @@ class MonitorService : Service() {
 }
 
 object Usage {
-    fun todayTotalMs(ctx: Context): Long {
-        val cal = Calendar.getInstance()
-        cal.set(Calendar.HOUR_OF_DAY, 0)
-        cal.set(Calendar.MINUTE, 0)
-        cal.set(Calendar.SECOND, 0)
-        cal.set(Calendar.MILLISECOND, 0)
+
+    fun rangeTotalMs(ctx: Context, start: Long, end: Long): Long {
         val usm = ctx.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val stats = usm.queryAndAggregateUsageStats(cal.timeInMillis, System.currentTimeMillis())
+        val stats = usm.queryAndAggregateUsageStats(start, end)
         val pm = ctx.packageManager
         var sum = 0L
         for ((pkg, s) in stats) {
@@ -124,5 +122,34 @@ object Usage {
             sum += s.totalTimeInForeground
         }
         return sum
+    }
+
+    fun todayTotalMs(ctx: Context): Long {
+        val cal = Calendar.getInstance()
+        cal.set(Calendar.HOUR_OF_DAY, 0)
+        cal.set(Calendar.MINUTE, 0)
+        cal.set(Calendar.SECOND, 0)
+        cal.set(Calendar.MILLISECOND, 0)
+        return rangeTotalMs(ctx, cal.timeInMillis, System.currentTimeMillis())
+    }
+
+    fun epochDay(): Long {
+        val now = System.currentTimeMillis()
+        return (now + TimeZone.getDefault().getOffset(now)) / 86400000L
+    }
+
+    fun applyGoal(ctx: Context) {
+        val p = ctx.getSharedPreferences("timeiq", Context.MODE_PRIVATE)
+        if (!p.getBoolean("goal_on", false)) return
+        val start = p.getInt("goal_start", 0)
+        val target = p.getInt("goal_target", 0)
+        val step = p.getInt("goal_step", 0)
+        val day0 = p.getLong("goal_day0", 0L)
+        var days = (epochDay() - day0).toInt()
+        if (days < 0) days = 0
+        val limit = maxOf(target, start - step * days)
+        if (p.getInt("limit_min", 0) != limit) {
+            p.edit().putInt("limit_min", limit).apply()
+        }
     }
 }
