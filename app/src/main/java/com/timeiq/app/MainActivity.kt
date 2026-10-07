@@ -3,6 +3,7 @@ package com.timeiq.app
 import android.Manifest
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -35,6 +36,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var progress: ProgressBar
     private lateinit var hoursInput: EditText
     private lateinit var minutesInput: EditText
+    private lateinit var blockerBtn: Button
+    private lateinit var selectedInfo: TextView
 
     private val bg = Color.parseColor("#0F172A")
     private val card = Color.parseColor("#1E293B")
@@ -58,6 +61,13 @@ class MainActivity : AppCompatActivity() {
         return g
     }
 
+    private fun fillBg(color: Int, r: Int): GradientDrawable {
+        val g = GradientDrawable()
+        g.setColor(color)
+        g.cornerRadius = dp(r).toFloat()
+        return g
+    }
+
     private fun makeInput(hint: String): EditText {
         val e = EditText(this)
         e.hint = hint
@@ -71,6 +81,17 @@ class MainActivity : AppCompatActivity() {
         lp.marginEnd = dp(8)
         e.layoutParams = lp
         return e
+    }
+
+    private fun wideButton(text: String, fill: Int, textColor: Int): Button {
+        val b = Button(this)
+        b.text = text
+        b.setTextColor(textColor)
+        b.background = fillBg(fill, 12)
+        val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52))
+        lp.topMargin = dp(12)
+        b.layoutParams = lp
+        return b
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -134,19 +155,10 @@ class MainActivity : AppCompatActivity() {
         totalCard.addView(limitInfo)
         totalCard.addView(status)
 
-        button = Button(this)
-        button.text = "Grant Usage Access"
-        button.setTextColor(bg)
-        val bb = GradientDrawable()
-        bb.setColor(accent)
-        bb.cornerRadius = dp(12).toFloat()
-        button.background = bb
+        button = wideButton("Grant Usage Access", accent, bg)
         button.setOnClickListener {
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
-        val bp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52))
-        bp.topMargin = dp(16)
-        button.layoutParams = bp
 
         val limitCard = LinearLayout(this)
         limitCard.orientation = LinearLayout.VERTICAL
@@ -176,10 +188,7 @@ class MainActivity : AppCompatActivity() {
         val save = Button(this)
         save.text = "Save limit"
         save.setTextColor(bg)
-        val sb = GradientDrawable()
-        sb.setColor(accent)
-        sb.cornerRadius = dp(12).toFloat()
-        save.background = sb
+        save.background = fillBg(accent, 12)
         save.setOnClickListener { saveLimit() }
         save.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(48)
@@ -188,6 +197,49 @@ class MainActivity : AppCompatActivity() {
         limitCard.addView(limitTitle)
         limitCard.addView(inputRow)
         limitCard.addView(save)
+
+        val blockCard = LinearLayout(this)
+        blockCard.orientation = LinearLayout.VERTICAL
+        blockCard.background = cardBg()
+        blockCard.setPadding(dp(20), dp(20), dp(20), dp(20))
+        val bcp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        bcp.topMargin = dp(16)
+        blockCard.layoutParams = bcp
+
+        val blockTitle = TextView(this)
+        blockTitle.text = "App blocking"
+        blockTitle.textSize = 16f
+        blockTitle.setTextColor(textMain)
+        blockTitle.setTypeface(null, Typeface.BOLD)
+
+        selectedInfo = TextView(this)
+        selectedInfo.textSize = 13f
+        selectedInfo.setTextColor(textDim)
+        selectedInfo.setPadding(0, dp(6), 0, 0)
+
+        val pick = wideButton("Select apps", accent, bg)
+        pick.setOnClickListener {
+            startActivity(Intent(this, AppPickerActivity::class.java))
+        }
+
+        blockerBtn = wideButton("Enable Blocker", card, textMain)
+        blockerBtn.background = fillBg(bg, 12)
+        blockerBtn.setOnClickListener {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            Toast.makeText(
+                this,
+                "Open Installed apps, then TimeIQ App Blocker, then turn it on",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+
+        blockCard.addView(blockTitle)
+        blockCard.addView(selectedInfo)
+        blockCard.addView(pick)
+        blockCard.addView(blockerBtn)
 
         val appsTitle = TextView(this)
         appsTitle.text = "Apps used today"
@@ -204,6 +256,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(totalCard)
         root.addView(button)
         root.addView(limitCard)
+        root.addView(blockCard)
         root.addView(appsTitle)
         root.addView(listBox)
 
@@ -231,14 +284,14 @@ class MainActivity : AppCompatActivity() {
     private fun saveLimit() {
         val h = hoursInput.text.toString().toIntOrNull() ?: 0
         val m = minutesInput.text.toString().toIntOrNull() ?: 0
-        val total = h * 60 + m
-        if (total <= 0) {
+        val minutes = h * 60 + m
+        if (minutes <= 0) {
             Toast.makeText(this, "Enter a limit greater than 0", Toast.LENGTH_SHORT).show()
             return
         }
         getSharedPreferences("timeiq", MODE_PRIVATE)
-            .edit().putInt("limit_min", total).apply()
-        Toast.makeText(this, "Limit saved: " + format(total * 60000L), Toast.LENGTH_SHORT).show()
+            .edit().putInt("limit_min", minutes).apply()
+        Toast.makeText(this, "Limit saved: " + format(minutes * 60000L), Toast.LENGTH_SHORT).show()
         startMonitor()
         refresh()
     }
@@ -256,8 +309,25 @@ class MainActivity : AppCompatActivity() {
         if (limit > 0) startMonitor()
     }
 
+    private fun blockerEnabled(): Boolean {
+        val enabled = Settings.Secure.getString(
+            contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        val me = ComponentName(this, BlockerService::class.java).flattenToString()
+        return enabled.split(":").any { it.equals(me, ignoreCase = true) }
+    }
+
     private fun refresh() {
-        val limit = getSharedPreferences("timeiq", MODE_PRIVATE).getInt("limit_min", 0)
+        val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
+        val limit = prefs.getInt("limit_min", 0)
+        val count = (prefs.getStringSet("blocked", emptySet()) ?: emptySet()).size
+        selectedInfo.text = if (blockerEnabled()) {
+            "Blocker: ON  -  $count app(s) selected"
+        } else {
+            "Blocker: OFF  -  $count app(s) selected"
+        }
+        blockerBtn.visibility = if (blockerEnabled()) View.GONE else View.VISIBLE
+
         if (hasUsageAccess()) {
             status.text = "Usage Access: granted"
             button.visibility = View.GONE
