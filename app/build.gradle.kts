@@ -15,6 +15,15 @@ android {
         versionName = "0.1"
     }
 
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("../timeiq-test.jks")
+            storePassword = "timeiq123"
+            keyAlias = "timeiq"
+            keyPassword = "timeiq123"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
