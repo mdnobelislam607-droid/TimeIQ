@@ -107,3 +107,42 @@ object Ui {
 
     fun fmtMin(min: Int): String = fmtMs(min * 60000L)
 }
+    fun backBar(act: android.app.Activity, title: String): LinearLayout {
+        val bar = LinearLayout(act)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        val back = TextView(act)
+        back.text = "\u2190"
+        back.textSize = 30f
+        back.setTextColor(accent)
+        back.setPadding(dp(act, 4), dp(act, 4), dp(act, 20), dp(act, 4))
+        back.setOnClickListener { act.finish() }
+        bar.addView(back)
+        bar.addView(text(act, title, 22f, textMain, true))
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.bottomMargin = dp(act, 8)
+        bar.layoutParams = lp
+        return bar
+    }    fun backBar(act: android.app.Activity, title: String): LinearLayout {
+        val bar = LinearLayout(act)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+        val back = TextView(act)
+        back.text = "\u2190"
+        back.textSize = 30f
+        back.setTextColor(accent)
+        back.setPadding(dp(act, 4), dp(act, 4), dp(act, 20), dp(act, 4))
+        back.setOnClickListener { act.finish() }
+        bar.addView(back)
+        bar.addView(text(act, title, 22f, textMain, true))
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.bottomMargin = dp(act, 8)
+        bar.layoutParams = lp
+        return bar
+    }
