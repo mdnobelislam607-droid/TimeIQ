@@ -1,20 +1,27 @@
 package com.timeiq.app
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.util.Calendar
 
@@ -24,6 +31,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var total: TextView
     private lateinit var listBox: LinearLayout
     private lateinit var button: Button
+    private lateinit var limitInfo: TextView
+    private lateinit var progress: ProgressBar
+    private lateinit var hoursInput: EditText
+    private lateinit var minutesInput: EditText
 
     private val bg = Color.parseColor("#0F172A")
     private val card = Color.parseColor("#1E293B")
@@ -40,6 +51,28 @@ class MainActivity : AppCompatActivity() {
         return g
     }
 
+    private fun inputBg(): GradientDrawable {
+        val g = GradientDrawable()
+        g.setColor(bg)
+        g.cornerRadius = dp(10).toFloat()
+        return g
+    }
+
+    private fun makeInput(hint: String): EditText {
+        val e = EditText(this)
+        e.hint = hint
+        e.inputType = InputType.TYPE_CLASS_NUMBER
+        e.setTextColor(textMain)
+        e.setHintTextColor(textDim)
+        e.background = inputBg()
+        e.setPadding(dp(14), dp(10), dp(14), dp(10))
+        e.gravity = Gravity.CENTER
+        val lp = LinearLayout.LayoutParams(0, dp(48), 1f)
+        lp.marginEnd = dp(8)
+        e.layoutParams = lp
+        return e
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.statusBarColor = bg
@@ -54,7 +87,7 @@ class MainActivity : AppCompatActivity() {
         title.text = "TimeIQ"
         title.textSize = 30f
         title.setTextColor(accent)
-        title.setTypeface(null, android.graphics.Typeface.BOLD)
+        title.setTypeface(null, Typeface.BOLD)
 
         val sub = TextView(this)
         sub.text = "Your screen time, under control"
@@ -75,15 +108,30 @@ class MainActivity : AppCompatActivity() {
         total = TextView(this)
         total.textSize = 38f
         total.setTextColor(textMain)
-        total.setTypeface(null, android.graphics.Typeface.BOLD)
+        total.setTypeface(null, Typeface.BOLD)
         total.text = "--"
 
+        progress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
+        progress.max = 100
+        progress.progressDrawable.setTint(accent)
+        val pp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(8))
+        pp.topMargin = dp(10)
+        progress.layoutParams = pp
+
+        limitInfo = TextView(this)
+        limitInfo.textSize = 13f
+        limitInfo.setTextColor(textDim)
+        limitInfo.setPadding(0, dp(8), 0, 0)
+
         status = TextView(this)
-        status.textSize = 13f
+        status.textSize = 12f
         status.setTextColor(textDim)
+        status.setPadding(0, dp(4), 0, 0)
 
         totalCard.addView(totalLabel)
         totalCard.addView(total)
+        totalCard.addView(progress)
+        totalCard.addView(limitInfo)
         totalCard.addView(status)
 
         button = Button(this)
@@ -96,17 +144,56 @@ class MainActivity : AppCompatActivity() {
         button.setOnClickListener {
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
-        val bp = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, dp(52)
-        )
+        val bp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52))
         bp.topMargin = dp(16)
         button.layoutParams = bp
+
+        val limitCard = LinearLayout(this)
+        limitCard.orientation = LinearLayout.VERTICAL
+        limitCard.background = cardBg()
+        limitCard.setPadding(dp(20), dp(20), dp(20), dp(20))
+        val lcp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        lcp.topMargin = dp(16)
+        limitCard.layoutParams = lcp
+
+        val limitTitle = TextView(this)
+        limitTitle.text = "Daily limit"
+        limitTitle.textSize = 16f
+        limitTitle.setTextColor(textMain)
+        limitTitle.setTypeface(null, Typeface.BOLD)
+
+        val inputRow = LinearLayout(this)
+        inputRow.orientation = LinearLayout.HORIZONTAL
+        inputRow.setPadding(0, dp(12), 0, dp(12))
+        hoursInput = makeInput("Hours")
+        minutesInput = makeInput("Minutes")
+        inputRow.addView(hoursInput)
+        inputRow.addView(minutesInput)
+
+        val save = Button(this)
+        save.text = "Save limit"
+        save.setTextColor(bg)
+        val sb = GradientDrawable()
+        sb.setColor(accent)
+        sb.cornerRadius = dp(12).toFloat()
+        save.background = sb
+        save.setOnClickListener { saveLimit() }
+        save.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(48)
+        )
+
+        limitCard.addView(limitTitle)
+        limitCard.addView(inputRow)
+        limitCard.addView(save)
 
         val appsTitle = TextView(this)
         appsTitle.text = "Apps used today"
         appsTitle.textSize = 16f
         appsTitle.setTextColor(textMain)
-        appsTitle.setTypeface(null, android.graphics.Typeface.BOLD)
+        appsTitle.setTypeface(null, Typeface.BOLD)
         appsTitle.setPadding(0, dp(24), 0, dp(10))
 
         listBox = LinearLayout(this)
@@ -116,6 +203,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(sub)
         root.addView(totalCard)
         root.addView(button)
+        root.addView(limitCard)
         root.addView(appsTitle)
         root.addView(listBox)
 
@@ -123,18 +211,63 @@ class MainActivity : AppCompatActivity() {
         scroll.setBackgroundColor(bg)
         scroll.addView(root)
         setContentView(scroll)
+
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+            }
+        }
+
+        val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
+        val saved = prefs.getInt("limit_min", 0)
+        if (saved > 0) {
+            hoursInput.setText((saved / 60).toString())
+            minutesInput.setText((saved % 60).toString())
+        }
+    }
+
+    private fun saveLimit() {
+        val h = hoursInput.text.toString().toIntOrNull() ?: 0
+        val m = minutesInput.text.toString().toIntOrNull() ?: 0
+        val total = h * 60 + m
+        if (total <= 0) {
+            Toast.makeText(this, "Enter a limit greater than 0", Toast.LENGTH_SHORT).show()
+            return
+        }
+        getSharedPreferences("timeiq", MODE_PRIVATE)
+            .edit().putInt("limit_min", total).apply()
+        Toast.makeText(this, "Limit saved: " + format(total * 60000L), Toast.LENGTH_SHORT).show()
+        startMonitor()
+        refresh()
+    }
+
+    private fun startMonitor() {
+        if (!hasUsageAccess()) return
+        val i = Intent(this, MonitorService::class.java)
+        if (Build.VERSION.SDK_INT >= 26) startForegroundService(i) else startService(i)
     }
 
     override fun onResume() {
         super.onResume()
+        refresh()
+        val limit = getSharedPreferences("timeiq", MODE_PRIVATE).getInt("limit_min", 0)
+        if (limit > 0) startMonitor()
+    }
+
+    private fun refresh() {
+        val limit = getSharedPreferences("timeiq", MODE_PRIVATE).getInt("limit_min", 0)
         if (hasUsageAccess()) {
             status.text = "Usage Access: granted"
             button.visibility = View.GONE
-            showUsage()
+            showUsage(limit)
         } else {
             status.text = "Usage Access: not granted"
             button.visibility = View.VISIBLE
             total.text = "--"
+            progress.progress = 0
+            limitInfo.text = if (limit > 0) "Limit: " + format(limit * 60000L) else "No limit set"
             listBox.removeAllViews()
         }
     }
@@ -149,7 +282,7 @@ class MainActivity : AppCompatActivity() {
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
-    private fun showUsage() {
+    private fun showUsage(limitMin: Int) {
         val cal = Calendar.getInstance()
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
@@ -167,20 +300,35 @@ class MainActivity : AppCompatActivity() {
 
         for ((pkg, s) in stats) {
             val ms = s.totalTimeInForeground
-            if (ms < 60000L) continue
             if (pkg == packageName) continue
             if (pm.getLaunchIntentForPackage(pkg) == null) continue
+            sum += ms
+            if (ms < 60000L) continue
             val name = try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (e: PackageManager.NameNotFoundException) {
                 pkg
             }
             rows.add(Pair(name, ms))
-            sum += ms
         }
 
         rows.sortByDescending { it.second }
         total.text = format(sum)
+
+        if (limitMin > 0) {
+            val limitMs = limitMin * 60000L
+            val pct = ((sum * 100) / limitMs).toInt()
+            progress.progress = if (pct > 100) 100 else pct
+            val left = limitMs - sum
+            limitInfo.text = if (left > 0) {
+                "Limit " + format(limitMs) + "  -  " + format(left) + " left"
+            } else {
+                "Limit " + format(limitMs) + "  -  limit reached"
+            }
+        } else {
+            progress.progress = 0
+            limitInfo.text = "No limit set"
+        }
 
         listBox.removeAllViews()
         if (rows.isEmpty()) {
