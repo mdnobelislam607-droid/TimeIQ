@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">TimeIQ detects which app is open so it can block the apps you selected after your daily limit is reached. It does not read or store anything you type.</string>
+</resources>
