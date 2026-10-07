@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import java.text.SimpleDateFormat
@@ -49,7 +48,7 @@ class FeatureActivity : AppCompatActivity() {
     }
 
     private fun header(title: String, sub: String) {
-                root.addView(Ui.backBar(this, title))
+        root.addView(Ui.backBar(this, title))
         val s = Ui.text(this, sub, 14f, Ui.textDim)
         s.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 8))
         root.addView(s)
@@ -112,9 +111,9 @@ class FeatureActivity : AppCompatActivity() {
             "No plan yet. Save a daily limit first, then choose a lower target."
         }
         c.addView(Ui.text(this, info, 14f, Ui.textDim))
-        c.addView(Ui.text(this, "Both boxes are in MINUTES. Example: target 90, cut 10.", 13f, Ui.orange).also {
-            it.setPadding(0, Ui.dp(this, 10), 0, 0)
-        })
+        val hint = Ui.text(this, "Both boxes are in MINUTES. Example: target 90, cut 10.", 13f, Ui.orange)
+        hint.setPadding(0, Ui.dp(this, 10), 0, 0)
+        c.addView(hint)
 
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
