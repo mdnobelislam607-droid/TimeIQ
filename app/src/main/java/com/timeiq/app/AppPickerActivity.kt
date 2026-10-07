@@ -1,10 +1,10 @@
 package com.timeiq.app
 
 import android.content.Intent
-import android.graphics.Color
-import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.widget.CheckBox
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -14,54 +14,62 @@ class AppPickerActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val bg = Color.parseColor("#0F172A")
-        val textMain = Color.parseColor("#F1F5F9")
-        val accent = Color.parseColor("#38BDF8")
-        window.statusBarColor = bg
-        window.navigationBarColor = bg
-        val d = resources.displayMetrics.density
-        fun dp(v: Int) = (v * d).toInt()
+        window.statusBarColor = Ui.bg
+        window.navigationBarColor = Ui.bg
 
         val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
         val chosen = HashSet(prefs.getStringSet("blocked", emptySet()) ?: emptySet())
 
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(bg)
-        root.setPadding(dp(20), dp(40), dp(20), dp(24))
+        root.setBackgroundColor(Ui.bg)
+        root.setPadding(Ui.dp(this, 20), Ui.dp(this, 40), Ui.dp(this, 20), Ui.dp(this, 24))
 
-        val title = TextView(this)
-        title.text = "Select apps to control"
-        title.textSize = 22f
-        title.setTextColor(accent)
-        title.setTypeface(null, Typeface.BOLD)
-        title.setPadding(0, 0, 0, dp(16))
+        val title = Ui.text(this, "Select apps to control", 22f, Ui.accent, true)
+        title.setPadding(0, 0, 0, Ui.dp(this, 16))
         root.addView(title)
 
         val launch = Intent(Intent.ACTION_MAIN)
         launch.addCategory(Intent.CATEGORY_LAUNCHER)
-        val apps = packageManager.queryIntentActivities(launch, 0)
-            .map { it.activityInfo.packageName to it.loadLabel(packageManager).toString() }
-            .filter { it.first != packageName }
-            .distinctBy { it.first }
-            .sortedBy { it.second.lowercase() }
+        val pm = packageManager
+        val apps = pm.queryIntentActivities(launch, 0)
+            .filter { it.activityInfo.packageName != packageName }
+            .distinctBy { it.activityInfo.packageName }
+            .sortedBy { it.loadLabel(pm).toString().lowercase() }
 
-        for ((pkg, name) in apps) {
+        for (ri in apps) {
+            val pkg = ri.activityInfo.packageName
+
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            row.setPadding(0, Ui.dp(this, 8), 0, Ui.dp(this, 8))
+
+            val icon = ImageView(this)
+            val ilp = LinearLayout.LayoutParams(Ui.dp(this, 40), Ui.dp(this, 40))
+            ilp.marginEnd = Ui.dp(this, 14)
+            icon.layoutParams = ilp
+            icon.setImageDrawable(ri.loadIcon(pm))
+
+            val name = Ui.text(this, ri.loadLabel(pm).toString(), 16f, Ui.textMain)
+            name.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+
             val cb = CheckBox(this)
-            cb.text = name
-            cb.textSize = 16f
-            cb.setTextColor(textMain)
             cb.isChecked = chosen.contains(pkg)
-            cb.setPadding(dp(8), dp(12), dp(8), dp(12))
             cb.setOnCheckedChangeListener { _, on ->
                 if (on) chosen.add(pkg) else chosen.remove(pkg)
                 prefs.edit().putStringSet("blocked", HashSet(chosen)).apply()
             }
-            root.addView(cb)
+
+            row.setOnClickListener { cb.toggle() }
+            row.addView(icon)
+            row.addView(name)
+            row.addView(cb)
+            root.addView(row)
         }
 
         val scroll = ScrollView(this)
-        scroll.setBackgroundColor(bg)
+        scroll.setBackgroundColor(Ui.bg)
         scroll.addView(root)
         setContentView(scroll)
     }
