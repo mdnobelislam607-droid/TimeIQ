@@ -5,10 +5,15 @@ on:
     branches: [ main ]
     paths-ignore:
       - 'TimeIQ.apk'
+      - 'timeiq-test.jks'
   workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -23,6 +28,15 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Create test signing key if missing
+        run: |
+          if [ ! -f timeiq-test.jks ]; then
+            keytool -genkeypair -keystore timeiq-test.jks \
+              -storepass timeiq123 -keypass timeiq123 \
+              -alias timeiq -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=TimeIQ Test"
+          fi
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
@@ -36,6 +50,7 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk TimeIQ.apk
           git config user.name "github-actions"
           git config user.email "actions@github.com"
-          git add TimeIQ.apk
-          git commit -m "Add built APK"
+          git add TimeIQ.apk timeiq-test.jks
+          git diff --cached --quiet || git commit -m "Add built APK"
+          git pull --rebase
           git push
