@@ -116,7 +116,7 @@ class SecurityActivity : AppCompatActivity() {
 
     private fun render() {
         root.removeAllViews()
-        root.addView(text("Security", 28f, accent, true))
+        root.addView(Ui.backBar(this, "Security"))
         root.addView(text("Management Code and unlock history", 14f, textDim))
 
         val p = prefs()
@@ -168,16 +168,14 @@ class SecurityActivity : AppCompatActivity() {
             if (resetAt > 0L) {
                 val hoursLeft = ((resetAt - now) / 3600000L) + 1
                 codeCard.addView(text("Reset requested. Ready in about $hoursLeft hour(s).", 13f, textDim))
-                val cancel = btn("Cancel reset", card, textMain)
-                cancel.background = round(bg, 12)
+                val cancel = btn("Cancel reset", bg, textMain)
                 cancel.setOnClickListener {
                     p.edit().putLong("reset_at", 0L).apply()
                     render()
                 }
                 codeCard.addView(cancel)
             } else {
-                val forgot = btn("I forgot my code (24 hour wait)", card, textMain)
-                forgot.background = round(bg, 12)
+                val forgot = btn("I forgot my code (24 hour wait)", bg, textMain)
                 forgot.setOnClickListener {
                     p.edit().putLong("reset_at", System.currentTimeMillis() + waitMs).apply()
                     Toast.makeText(this, "You can set a new code in 24 hours", Toast.LENGTH_LONG).show()
