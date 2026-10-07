@@ -49,7 +49,7 @@ class FeatureActivity : AppCompatActivity() {
     }
 
     private fun header(title: String, sub: String) {
-        root.addView(Ui.text(this, title, 28f, Ui.accent, true))
+                root.addView(Ui.backBar(this, title))
         val s = Ui.text(this, sub, 14f, Ui.textDim)
         s.setPadding(0, Ui.dp(this, 2), 0, Ui.dp(this, 8))
         root.addView(s)
