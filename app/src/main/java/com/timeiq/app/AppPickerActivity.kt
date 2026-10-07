@@ -7,7 +7,6 @@ import android.widget.CheckBox
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class AppPickerActivity : AppCompatActivity() {
@@ -25,7 +24,7 @@ class AppPickerActivity : AppCompatActivity() {
         root.setBackgroundColor(Ui.bg)
         root.setPadding(Ui.dp(this, 20), Ui.dp(this, 40), Ui.dp(this, 20), Ui.dp(this, 24))
 
-                root.addView(Ui.backBar(this, "Select apps to control"))
+        root.addView(Ui.backBar(this, "Select apps to control"))
 
         val launch = Intent(Intent.ACTION_MAIN)
         launch.addCategory(Intent.CATEGORY_LAUNCHER)
