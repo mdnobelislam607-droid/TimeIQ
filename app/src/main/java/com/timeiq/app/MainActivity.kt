@@ -239,6 +239,14 @@ class MainActivity : AppCompatActivity() {
         blockCard.addView(pick)
         blockCard.addView(blockerBtn)
 
+        val securityCard = makeCard()
+        val secBtn = wideButton("Code and unlock history", bg, textMain)
+        secBtn.setOnClickListener {
+            startActivity(Intent(this, SecurityActivity::class.java))
+        }
+        securityCard.addView(cardTitle("Security"))
+        securityCard.addView(secBtn)
+
         val weekCard = makeCard()
         weekBox = LinearLayout(this)
         weekBox.orientation = LinearLayout.VERTICAL
@@ -263,6 +271,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(limitCard)
         root.addView(goalCard)
         root.addView(blockCard)
+        root.addView(securityCard)
         root.addView(weekCard)
         root.addView(appsTitle)
         root.addView(listBox)
