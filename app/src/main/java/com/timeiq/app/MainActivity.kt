@@ -24,7 +24,9 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,6 +40,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var minutesInput: EditText
     private lateinit var blockerBtn: Button
     private lateinit var selectedInfo: TextView
+    private lateinit var goalInfo: TextView
+    private lateinit var targetInput: EditText
+    private lateinit var stepInput: EditText
+    private lateinit var weekBox: LinearLayout
 
     private val bg = Color.parseColor("#0F172A")
     private val card = Color.parseColor("#1E293B")
@@ -47,20 +53,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
 
-    private fun cardBg(): GradientDrawable {
-        val g = GradientDrawable()
-        g.setColor(card)
-        g.cornerRadius = dp(16).toFloat()
-        return g
-    }
-
-    private fun inputBg(): GradientDrawable {
-        val g = GradientDrawable()
-        g.setColor(bg)
-        g.cornerRadius = dp(10).toFloat()
-        return g
-    }
-
     private fun fillBg(color: Int, r: Int): GradientDrawable {
         val g = GradientDrawable()
         g.setColor(color)
@@ -68,13 +60,15 @@ class MainActivity : AppCompatActivity() {
         return g
     }
 
+    private fun cardBg(): GradientDrawable = fillBg(card, 16)
+
     private fun makeInput(hint: String): EditText {
         val e = EditText(this)
         e.hint = hint
         e.inputType = InputType.TYPE_CLASS_NUMBER
         e.setTextColor(textMain)
         e.setHintTextColor(textDim)
-        e.background = inputBg()
+        e.background = fillBg(bg, 10)
         e.setPadding(dp(14), dp(10), dp(14), dp(10))
         e.gravity = Gravity.CENTER
         val lp = LinearLayout.LayoutParams(0, dp(48), 1f)
@@ -92,6 +86,29 @@ class MainActivity : AppCompatActivity() {
         lp.topMargin = dp(12)
         b.layoutParams = lp
         return b
+    }
+
+    private fun makeCard(): LinearLayout {
+        val c = LinearLayout(this)
+        c.orientation = LinearLayout.VERTICAL
+        c.background = cardBg()
+        c.setPadding(dp(20), dp(20), dp(20), dp(20))
+        val lp = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        lp.topMargin = dp(16)
+        c.layoutParams = lp
+        return c
+    }
+
+    private fun cardTitle(text: String): TextView {
+        val t = TextView(this)
+        t.text = text
+        t.textSize = 16f
+        t.setTextColor(textMain)
+        t.setTypeface(null, Typeface.BOLD)
+        return t
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -160,23 +177,7 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
 
-        val limitCard = LinearLayout(this)
-        limitCard.orientation = LinearLayout.VERTICAL
-        limitCard.background = cardBg()
-        limitCard.setPadding(dp(20), dp(20), dp(20), dp(20))
-        val lcp = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        lcp.topMargin = dp(16)
-        limitCard.layoutParams = lcp
-
-        val limitTitle = TextView(this)
-        limitTitle.text = "Daily limit"
-        limitTitle.textSize = 16f
-        limitTitle.setTextColor(textMain)
-        limitTitle.setTypeface(null, Typeface.BOLD)
-
+        val limitCard = makeCard()
         val inputRow = LinearLayout(this)
         inputRow.orientation = LinearLayout.HORIZONTAL
         inputRow.setPadding(0, dp(12), 0, dp(12))
@@ -184,7 +185,6 @@ class MainActivity : AppCompatActivity() {
         minutesInput = makeInput("Minutes")
         inputRow.addView(hoursInput)
         inputRow.addView(minutesInput)
-
         val save = Button(this)
         save.text = "Save limit"
         save.setTextColor(bg)
@@ -193,40 +193,39 @@ class MainActivity : AppCompatActivity() {
         save.layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT, dp(48)
         )
-
-        limitCard.addView(limitTitle)
+        limitCard.addView(cardTitle("Daily limit"))
         limitCard.addView(inputRow)
         limitCard.addView(save)
 
-        val blockCard = LinearLayout(this)
-        blockCard.orientation = LinearLayout.VERTICAL
-        blockCard.background = cardBg()
-        blockCard.setPadding(dp(20), dp(20), dp(20), dp(20))
-        val bcp = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        bcp.topMargin = dp(16)
-        blockCard.layoutParams = bcp
+        val goalCard = makeCard()
+        goalInfo = TextView(this)
+        goalInfo.textSize = 13f
+        goalInfo.setTextColor(textDim)
+        goalInfo.setPadding(0, dp(6), 0, 0)
+        val goalRow = LinearLayout(this)
+        goalRow.orientation = LinearLayout.HORIZONTAL
+        goalRow.setPadding(0, dp(12), 0, 0)
+        targetInput = makeInput("Target (min)")
+        stepInput = makeInput("Cut/day (min)")
+        goalRow.addView(targetInput)
+        goalRow.addView(stepInput)
+        val startPlan = wideButton("Start plan", accent, bg)
+        startPlan.setOnClickListener { startPlan() }
+        goalCard.addView(cardTitle("Gradual reduction plan"))
+        goalCard.addView(goalInfo)
+        goalCard.addView(goalRow)
+        goalCard.addView(startPlan)
 
-        val blockTitle = TextView(this)
-        blockTitle.text = "App blocking"
-        blockTitle.textSize = 16f
-        blockTitle.setTextColor(textMain)
-        blockTitle.setTypeface(null, Typeface.BOLD)
-
+        val blockCard = makeCard()
         selectedInfo = TextView(this)
         selectedInfo.textSize = 13f
         selectedInfo.setTextColor(textDim)
         selectedInfo.setPadding(0, dp(6), 0, 0)
-
         val pick = wideButton("Select apps", accent, bg)
         pick.setOnClickListener {
             startActivity(Intent(this, AppPickerActivity::class.java))
         }
-
-        blockerBtn = wideButton("Enable Blocker", card, textMain)
-        blockerBtn.background = fillBg(bg, 12)
+        blockerBtn = wideButton("Enable Blocker", bg, textMain)
         blockerBtn.setOnClickListener {
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             Toast.makeText(
@@ -235,11 +234,17 @@ class MainActivity : AppCompatActivity() {
                 Toast.LENGTH_LONG
             ).show()
         }
-
-        blockCard.addView(blockTitle)
+        blockCard.addView(cardTitle("App blocking"))
         blockCard.addView(selectedInfo)
         blockCard.addView(pick)
         blockCard.addView(blockerBtn)
+
+        val weekCard = makeCard()
+        weekBox = LinearLayout(this)
+        weekBox.orientation = LinearLayout.VERTICAL
+        weekBox.setPadding(0, dp(12), 0, 0)
+        weekCard.addView(cardTitle("Last 7 days"))
+        weekCard.addView(weekBox)
 
         val appsTitle = TextView(this)
         appsTitle.text = "Apps used today"
@@ -256,7 +261,9 @@ class MainActivity : AppCompatActivity() {
         root.addView(totalCard)
         root.addView(button)
         root.addView(limitCard)
+        root.addView(goalCard)
         root.addView(blockCard)
+        root.addView(weekCard)
         root.addView(appsTitle)
         root.addView(listBox)
 
@@ -272,13 +279,6 @@ class MainActivity : AppCompatActivity() {
                 requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
             }
         }
-
-        val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
-        val saved = prefs.getInt("limit_min", 0)
-        if (saved > 0) {
-            hoursInput.setText((saved / 60).toString())
-            minutesInput.setText((saved % 60).toString())
-        }
     }
 
     private fun saveLimit() {
@@ -289,9 +289,40 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Enter a limit greater than 0", Toast.LENGTH_SHORT).show()
             return
         }
-        getSharedPreferences("timeiq", MODE_PRIVATE)
-            .edit().putInt("limit_min", minutes).apply()
-        Toast.makeText(this, "Limit saved: " + format(minutes * 60000L), Toast.LENGTH_SHORT).show()
+        getSharedPreferences("timeiq", MODE_PRIVATE).edit()
+            .putInt("limit_min", minutes)
+            .putBoolean("goal_on", false)
+            .apply()
+        Toast.makeText(this, "Limit saved: " + fmtMin(minutes), Toast.LENGTH_SHORT).show()
+        startMonitor()
+        refresh()
+    }
+
+    private fun startPlan() {
+        val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
+        val current = prefs.getInt("limit_min", 0)
+        val target = targetInput.text.toString().toIntOrNull() ?: 0
+        val step = stepInput.text.toString().toIntOrNull() ?: 0
+        if (current <= 0) {
+            Toast.makeText(this, "Save a daily limit first", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (target <= 0 || target >= current) {
+            Toast.makeText(this, "Target must be lower than your current limit", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (step <= 0) {
+            Toast.makeText(this, "Enter minutes to cut per day", Toast.LENGTH_SHORT).show()
+            return
+        }
+        prefs.edit()
+            .putBoolean("goal_on", true)
+            .putInt("goal_start", current)
+            .putInt("goal_target", target)
+            .putInt("goal_step", step)
+            .putLong("goal_day0", Usage.epochDay())
+            .apply()
+        Toast.makeText(this, "Plan started", Toast.LENGTH_SHORT).show()
         startMonitor()
         refresh()
     }
@@ -304,6 +335,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Usage.applyGoal(this)
         refresh()
         val limit = getSharedPreferences("timeiq", MODE_PRIVATE).getInt("limit_min", 0)
         if (limit > 0) startMonitor()
@@ -321,6 +353,12 @@ class MainActivity : AppCompatActivity() {
         val prefs = getSharedPreferences("timeiq", MODE_PRIVATE)
         val limit = prefs.getInt("limit_min", 0)
         val count = (prefs.getStringSet("blocked", emptySet()) ?: emptySet()).size
+
+        if (limit > 0) {
+            hoursInput.setText((limit / 60).toString())
+            minutesInput.setText((limit % 60).toString())
+        }
+
         selectedInfo.text = if (blockerEnabled()) {
             "Blocker: ON  -  $count app(s) selected"
         } else {
@@ -328,17 +366,28 @@ class MainActivity : AppCompatActivity() {
         }
         blockerBtn.visibility = if (blockerEnabled()) View.GONE else View.VISIBLE
 
+        if (prefs.getBoolean("goal_on", false)) {
+            goalInfo.text = "Plan: " + fmtMin(prefs.getInt("goal_start", 0)) +
+                " to " + fmtMin(prefs.getInt("goal_target", 0)) +
+                ", cut " + prefs.getInt("goal_step", 0) + "m per day. Today's limit: " +
+                fmtMin(limit)
+        } else {
+            goalInfo.text = "No plan. Save a limit, then set a lower target and how many minutes to cut each day."
+        }
+
         if (hasUsageAccess()) {
             status.text = "Usage Access: granted"
             button.visibility = View.GONE
             showUsage(limit)
+            showWeek()
         } else {
             status.text = "Usage Access: not granted"
             button.visibility = View.VISIBLE
             total.text = "--"
             progress.progress = 0
-            limitInfo.text = if (limit > 0) "Limit: " + format(limit * 60000L) else "No limit set"
+            limitInfo.text = if (limit > 0) "Limit: " + fmtMin(limit) else "No limit set"
             listBox.removeAllViews()
+            weekBox.removeAllViews()
         }
     }
 
@@ -350,6 +399,77 @@ class MainActivity : AppCompatActivity() {
             packageName
         )
         return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun showWeek() {
+        weekBox.removeAllViews()
+        val sdf = SimpleDateFormat("EEE", Locale.ENGLISH)
+        val vals = LongArray(7)
+        val labels = ArrayList<String>()
+        for (i in 6 downTo 0) {
+            val c = Calendar.getInstance()
+            c.set(Calendar.HOUR_OF_DAY, 0)
+            c.set(Calendar.MINUTE, 0)
+            c.set(Calendar.SECOND, 0)
+            c.set(Calendar.MILLISECOND, 0)
+            c.add(Calendar.DAY_OF_YEAR, -i)
+            val s = c.timeInMillis
+            val e = if (i == 0) System.currentTimeMillis() else s + 86400000L
+            vals[6 - i] = Usage.rangeTotalMs(this, s, e)
+            labels.add(if (i == 0) "Today" else sdf.format(c.time))
+        }
+
+        var max = 1L
+        var sum = 0L
+        var days = 0
+        for (v in vals) {
+            if (v > max) max = v
+            if (v > 0) {
+                sum += v
+                days++
+            }
+        }
+
+        for (idx in 0 until 7) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            row.setPadding(0, dp(6), 0, dp(6))
+
+            val lbl = TextView(this)
+            lbl.text = labels[idx]
+            lbl.textSize = 13f
+            lbl.setTextColor(textDim)
+            lbl.layoutParams = LinearLayout.LayoutParams(dp(52), LinearLayout.LayoutParams.WRAP_CONTENT)
+
+            val bar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal)
+            bar.max = 100
+            bar.progress = ((vals[idx] * 100) / max).toInt()
+            bar.progressDrawable.setTint(accent)
+            val bp = LinearLayout.LayoutParams(0, dp(8), 1f)
+            bp.marginStart = dp(6)
+            bp.marginEnd = dp(6)
+            bar.layoutParams = bp
+
+            val v = TextView(this)
+            v.text = format(vals[idx])
+            v.textSize = 13f
+            v.setTextColor(textMain)
+            v.gravity = Gravity.END
+            v.layoutParams = LinearLayout.LayoutParams(dp(64), LinearLayout.LayoutParams.WRAP_CONTENT)
+
+            row.addView(lbl)
+            row.addView(bar)
+            row.addView(v)
+            weekBox.addView(row)
+        }
+
+        val avg = TextView(this)
+        avg.textSize = 13f
+        avg.setTextColor(textDim)
+        avg.setPadding(0, dp(10), 0, 0)
+        avg.text = if (days > 0) "Daily average: " + format(sum / days) else "No data yet"
+        weekBox.addView(avg)
     }
 
     private fun showUsage(limitMin: Int) {
@@ -438,6 +558,8 @@ class MainActivity : AppCompatActivity() {
             listBox.addView(row)
         }
     }
+
+    private fun fmtMin(min: Int): String = format(min * 60000L)
 
     private fun format(ms: Long): String {
         val minutes = ms / 60000L
